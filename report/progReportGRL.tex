@@ -1,0 +1,249 @@
+\documentclass[a4paper]{article}
+
+\usepackage{a4wide,times}
+\usepackage[english]{babel}
+\usepackage{courier}
+\usepackage{listings}
+\usepackage{color}
+
+\renewcommand{\div}{\;\mathsf{div}\;}
+
+\newcommand{\Algorithm}{\textbf{\textsf{algorithm}}$\;$}
+\newcommand{\Do}{\textbf{\textsf{do}}$\;$}
+\newcommand{\Downto}{\textbf{\textsf{downto}}$\;$}
+\newcommand{\Else}{\textbf{\textsf{else}}$\;$}
+\newcommand{\End}{\textbf{\textsf{end}}$\;$}
+\newcommand{\For}{\textbf{\textsf{for}$\;$}}
+\newcommand{\Forall}{\textbf{\textsf{forall}$\;$}}
+\newcommand{\If}{\textbf{\textsf{if}}$\;$}
+\newcommand{\Input}{\textbf{\textsf{input}}$\;$}
+\newcommand{\Result}{\textbf{\textsf{result}}$\;$}
+\newcommand{\Return}{\textbf{\textsf{return}}$\;$}
+\newcommand{\Then}{\textbf{\textsf{then}}$\;$}
+\newcommand{\To}{\textbf{\textsf{to}}$\;$}
+\newcommand{\Output}{\textbf{\textsf{output}}$\;$}
+\newcommand{\While}{\textbf{\textsf{while}}$\;$}
+
+\newcommand{\becomes}{$\leftarrow\;$}
+
+\newcommand{\Comment}[1]{$/*$#1$*/$}
+
+\newcommand{\mod}{\;\mathsf{mod}\;}
+
+\definecolor{Gray}{gray}{0.95}
+
+\lstset{ %
+	language = C,                   % choose the language of the code
+	basicstyle = \small\ttfamily,   % the size and fonts that are used
+	frame = single,                 % adds a frame around the code
+	tabsize = 3,                    % sets default tabsize
+	breaklines = true,              % sets automatic line breaking
+	numbers = left,                 % where to put the line-numbers
+	numberstyle = \footnotesize,    % the style of the line-numbers
+	backgroundcolor = \color{Gray}  % the background color of the listing
+}
+
+% -- until here ---------------------------------
+
+\begin{document}
+
+
+\title{Programming Report: \\
+       Long division
+}
+\date{\today}
+\author{Gerard Renardel de Lavalette (p147604)
+}
+
+\maketitle
+
+\section{Problem description}
+
+\paragraph{General:}
+Write a C program that prints the computation of the integer quotient of two natural numbers with the long division algorithm in the notation that is used in the Netherlands.
+
+\paragraph{Input-output behaviour:}
+The input of the program consists of two natural numbers smaller than $2^{64}$, separated by a blank. 
+The first number must be positive.
+The output is the result of the long division algorithm applied to the two numbers.
+\\
+Example input:
+\begin{verbatim}
+345 12345678
+\end{verbatim}
+Example output:
+\begin{verbatim}
+345 / 12345678 \ 35784
+      1035
+      ----
+       1995
+       1725
+       ----
+        2706
+        2415
+        ----
+         2917
+         2760
+         ----
+          1578
+          1380
+          ----
+           198
+\end{verbatim}
+
+\section{Problem analysis}
+
+The computation of the quotient of number $n$ and divisor $d$ is easy, using the C function \verb!/! (integer division).
+The essence of the problem is the computation of the numbers that appear in the long division, and the appropriate printing of these numbers.
+
+We observe that a long division contains a number of \textit{computation steps}.
+Each computation step is based on a start value and it yields an end value, which will be the start value for a next step.
+The initial start value $v$ is the least initial segment of number $n$ such that $d \leq v$, where $d$ is the divisor.
+Every computation step consists of three parts, printed on three lines:
+\begin{itemize}
+\item a multiple $m$ of $d$ with the property $0 \leq v - m < d$;
+\item a line,
+\item the end value of the computation step, obtained by extending $v - m$ with digits from $n$ until it is at least $d$.
+\end{itemize}
+The end value will be the new value of $v$.
+Computation steps are performed as long as $d \leq v$. 
+\\[2ex]
+In pseudocode, the algorithm can be described as follows.
+\begin{tabbing}
+xxx \= xxx \= xxxxxxxxxxxxxxxxxxxx \= xxxxxxx \= \kill
+\Algorithm LongDivision($d$, $n$) \\
+\> \Input natural numbers $d > 0$ and $n$ \\
+\> \Output long division applied to $d$ and $n$\\
+\> $v$ \becomes the least initial segment of $n$ that is at least $d$ \\
+\> \While $d \leq v$ \Do \\
+\> \> $m$ \becomes $d \cdot (v \div d)$ \> \Comment{ so $0 \leq v - m < d$ } \\
+\> \> print $m$ \\
+\> \> print a line \\
+\> \> $v$ \becomes $v \mod d$ \> \Comment{ so $v < d$ } \\
+\> \> as long as $v < d$, extend $v$ with digits from $n$ \\
+\> \> print $v$
+\end{tabbing} 
+As an example, we display the first computation step in the example output given above:
+\begin{verbatim}
+      1035
+      ----
+       1995
+\end{verbatim}
+Recall that $d = 345$ and $n = 12345678$.
+The start value for this step is 1234, the first initial segment of 12345678 that is at least 345.
+Now 1035 equals $3 \times 345$, and $1234 - 1035$ equals 199 which is indeed non-negative and smaller than 345.
+199 is extended with digit 5 so as to form the end value 1995, which will be the start value for the next step.
+
+\section{Program design}
+
+We define auxiliary functions \verb!length! to determine the length of the decimal representation of a number, and \verb!printLine! to print a line consisting of characters `\verb!-!'.
+
+The main function is \verb!makeLongDivision!.
+It reads \verb!divisor! and \verb!number! and prints the first line of the long division.
+Then the array \verb!digits! is filled with the digits of \verb!number!, and \verb!value!  and \verb!width! are initialized.
+The main \verb!while! loop computes and prints computation steps, until \verb!value! $<$ \verb!divisor! and no digits of $n$ are available.
+The main loop contains a \verb!while! loop to compute the new \verb!value! and \verb!width!.
+
+The main program reads the input, checks for positivity of \verb!divisor!, and performs long division.
+
+\paragraph{Design choice.}
+The \verb!while! loop for the initial computation of \verb!value! and \verb!width! (line 57-61) is identical to the \verb!while! loop for the update of these variables (line 71-75).
+This suggest the introduction of a function to make this identity explicit.
+However, we decided not to do this.
+The reason is that there are five parameters involved (three of them as reference parameter), which would lead to a rather complex function definition that would be quite top-heavy in the present context.
+
+\paragraph{Time complexity.}
+The time complexity of the program is in ${\cal O}(\log(\verb!number!))$ (provided that \verb!number! $>$ \verb!divisor!).
+To see this, we first observe that \verb!length(number)! is in ${\cal O}(\log(\verb!number!))$.
+In the function \verb!makeLongDivision!, the variable \verb!index! starts with value 0, is raised stepwise to the value \verb!length(number)! and then decreases stepwise to 0. 
+For every value of \verb!index!, a bounded number of computation is performed. 
+So the time complexity of \verb!makeLongDivision! is in ${\cal O}(\log(\verb!number!))$.
+
+\section{Evaluation of the program}
+
+We first test the program on the input \verb!345 12345678! given in the example above.
+This yields
+\begin{verbatim}
+345 / 12345678 \ 35784
+      1035
+      ----
+       1995
+       1725
+       ----
+        2706
+        2415
+        ----
+         2917
+         2760
+         ----
+          1578
+          1380
+          ----
+           198
+\end{verbatim}
+We test the check on positivity of the divisor by feeding the input \verb!0 12345!:
+\begin{verbatim}
+a.out: longDivision.c:92: main: Assertion `divisor > 0' failed.
+Aborted (core dumped)
+\end{verbatim}
+Now we test what happens with the input \verb!34567 1234!, where the number is smaller than the divisor:
+\begin{verbatim}
+34567 / 1234 \ 0
+\end{verbatim}
+Finally a test with the input \verb!12345 108018806787000!, which should produce a long division with computation steps that use more than one new digit from \verb!number!, leading to zeroes in the quotient.
+Moreover, the last line in the last computation step should contain three zeroes.
+\begin{verbatim}
+12345 / 108018806787000 \ 8750004600
+         98760
+        ------
+          92588
+          86415
+          -----
+           61730
+           61725
+           -----
+               56787
+               49380
+               -----
+                74070
+                74070
+                -----
+                    000
+\end{verbatim}
+We observe that all tests are successful.
+
+In order to check for memory leaks, we apply \verb!valgrind!.
+With the input \verb!345 1234567812345678! we then get the following information from \verb!valgrind!:
+\begin{verbatim}
+==581== HEAP SUMMARY:
+==581==     in use at exit: 0 bytes in 0 blocks
+==581==   total heap usage: 1 allocs, 1 frees, 64 bytes allocated
+==581== 
+==581== All heap blocks were freed -- no leaks are possible
+==581== 
+==581== For counts of detected and suppressed errors, rerun with: -v
+==581== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{verbatim}
+So no memory leaks are found.
+We conclude that all tests are successful.
+
+\section{Process description}
+
+A long division consists of a first line, followed by a series of computation steps in which two numbers are subtracted.
+It worked well to use this overall structure of a long division as a blueprint for the main function \verb!makeLongDivision!: see the \verb!while! loop on line 64 to 78.
+
+Designing the \verb!while! loops for the initial computation and the subsequent recomputation of \verb!value! and \verb!width! was somewhat more involved.
+It lead to the slightly surprising guard \verb!value < divisor && i >= 0!, and then to the insight that both loops are identical.
+
+By developing this program I learned about the type \verb!unsigned long! and also some useful properties and options of the function \verb!printf!. 
+
+\section{Conclusions}
+
+The program solves the problem of printing long division in a straightforward way, following the structure of a long division as a series of subtractions.
+It is also efficient: its time complexity is bounded by $\log(\verb!number!)$, which is also a tight bound for the number of computation steps in the long division.
+
+\section{Appendix: program text}
+
+\lstinputlisting[caption = \tt longDivision.c]{longDivision.c}
+
+\end{document}
